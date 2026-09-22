@@ -1,0 +1,51 @@
+# SwiftPM / build
+.build/
+.swiftpm/
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+
+# Local app + release artifacts (never commit binaries)
+dist/
+*.app/
+*.zip
+*.sha256
+*.dmg
+*.pkg
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Credentials, env, secrets, certs, local DBs
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.cer
+*.crt
+*.mobileprovision
+*.vscdb
+*.db
+*.sqlite
+*.sqlite3
+credentials*
+*token*
+*secret*
+secrets/
+certs/
+keys/
+
+# Local scratch
+*.log
+tmp/
+temp/
+
+# Source files whose names collide with the secret patterns above
+!Sources/ClaudeGaugeCore/TokenManager.swift
+!Sources/ClaudeGaugeCore/Credentials.swift

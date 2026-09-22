@@ -1,0 +1,19 @@
+---
+description: Always ship a GitHub Release after ClaudeGauge app changes
+alwaysApply: true
+---
+
+# ClaudeGauge — always ship a release
+
+When shipping **user-facing** ClaudeGauge changes (UI, menu bar, popover, bundling, versioned behavior):
+
+1. **Do not stop at commit/PR only.** Also cut or update a GitHub Release the user can download.
+2. Default flow after the change is on a branch/PR:
+   - bump `Makefile` `VERSION`, `Resources/Info.plist` (`CFBundleShortVersionString` / `CFBundleVersion`) and `claudeGaugeVersion` in `Sources/ClaudeGaugeCore/API.swift`
+   - update `CHANGELOG.md`
+   - `make test && make release-zip`
+   - `git push` + open/update PR targeting `main`
+   - `gh release create vX.Y.Z …` with the zip + `.sha256`
+3. **Local verify:** `make run` so the user can see the build in the menu bar.
+4. **Never merge** the PR — user merges.
+5. Docs-only / test-only / internal refactors with no user-visible app change do **not** require a release unless the user asks.

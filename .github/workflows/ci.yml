@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    name: Build & test (macOS)
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Swift version
+        run: swift --version
+
+      - name: Test
+        run: make test
+
+      - name: Release build + app bundle
+        run: make app
+
+      - name: Smoke check
+        run: make smoke-check
+
+      - name: Verify arm64 Mach-O
+        run: |
+          file dist/ClaudeGauge.app/Contents/MacOS/ClaudeGauge | tee /tmp/file-out.txt
+          grep -q 'arm64' /tmp/file-out.txt
