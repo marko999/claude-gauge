@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.1
+
+- Menu-bar progress bars now draw the full 100 % track as an outlined capsule, so the filled part is readable against the translucent menu bar; bars are slightly larger (34×9)
+
 ## v0.2.0
 
 - **Menu bar shows** setting: 5-hour session on/off; weekly = none / tightest only / every weekly limit (replaces compact/full; old preference migrates)

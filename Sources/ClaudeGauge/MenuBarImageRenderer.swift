@@ -6,8 +6,8 @@ import ClaudeGaugeCore
 /// switches between light and dark appearance.
 enum MenuBarImageRenderer {
     static let height: CGFloat = 18
-    private static let barWidth: CGFloat = 26
-    private static let barHeight: CGFloat = 7
+    private static let barWidth: CGFloat = 34
+    private static let barHeight: CGFloat = 9
     private static let innerGap: CGFloat = 4
     private static let segmentGap: CGFloat = 9
 
@@ -84,16 +84,26 @@ enum MenuBarImageRenderer {
         }
     }
 
+    /// Full track = 100 %: a clearly outlined capsule, so the filled part reads as
+    /// "this much of that". The fill is inset by the outline so the border stays visible.
     private static func drawBar(in rect: NSRect, fraction: Double, severity: UsageSeverity) {
         let radius = rect.height / 2
-        NSColor.labelColor.withAlphaComponent(0.18).setFill()
-        NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
+        let outline = NSBezierPath(
+            roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), xRadius: radius, yRadius: radius
+        )
+        NSColor.labelColor.withAlphaComponent(0.10).setFill()
+        outline.fill()
+        NSColor.labelColor.withAlphaComponent(0.65).setStroke()
+        outline.lineWidth = 1
+        outline.stroke()
 
         let clamped = max(0, min(1, fraction))
         guard clamped > 0 else { return }
+        let inner = rect.insetBy(dx: 1.5, dy: 1.5)
+        let innerRadius = inner.height / 2
         let fill = NSRect(
-            x: rect.minX, y: rect.minY,
-            width: max(rect.height, rect.width * clamped), height: rect.height
+            x: inner.minX, y: inner.minY,
+            width: max(inner.height, inner.width * clamped), height: inner.height
         )
         let color: NSColor
         switch severity {
@@ -102,6 +112,6 @@ enum MenuBarImageRenderer {
         case .critical: color = .systemRed
         }
         color.setFill()
-        NSBezierPath(roundedRect: fill, xRadius: radius, yRadius: radius).fill()
+        NSBezierPath(roundedRect: fill, xRadius: innerRadius, yRadius: innerRadius).fill()
     }
 }

@@ -1,6 +1,6 @@
 import Foundation
 
-public let claudeGaugeVersion = "0.2.0"
+public let claudeGaugeVersion = "0.2.1"
 
 /// Usage endpoint behind `/usage` in Claude Code.
 public let claudeAPIOrigin = "https://api.anthropic.com"
