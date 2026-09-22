@@ -16,8 +16,10 @@ public let claudeOAuthClientID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
 
 public let claudeUsageSettingsURL = URL(string: "https://claude.ai/settings/usage")!
 
-/// The endpoint rate-limits unknown clients; identify as Claude Code plus ourselves.
-private let userAgent = "claude-code/2.1.224 ClaudeGauge/\(claudeGaugeVersion)"
+/// Identify honestly. The OAuth token endpoint answers 429 to any User-Agent that
+/// claims to be `claude-code/...` without the real client's fingerprint, while the
+/// usage endpoint accepts this UA fine (verified 2026-09-22).
+private let userAgent = "ClaudeGauge/\(claudeGaugeVersion) (+https://github.com/marko999/claude-gauge)"
 
 private let allowedHosts: Set<String> = [
     "api.anthropic.com",
