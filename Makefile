@@ -3,7 +3,7 @@ ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 DIST := $(ROOT)/dist
 APP := $(DIST)/ClaudeGauge.app
 BIN_NAME := ClaudeGauge
-VERSION := 0.1.0
+VERSION := 0.2.1
 RELEASE_ZIP := $(DIST)/ClaudeGauge-v$(VERSION)-macOS-arm64.zip
 RELEASE_SHA := $(RELEASE_ZIP).sha256
 

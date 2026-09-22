@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.2.1
+
+- Menu-bar progress bars now draw the full 100 % track as an outlined capsule, so the filled part is readable against the translucent menu bar; bars are slightly larger (34×9)
+
+## v0.2.0
+
+- **Menu bar shows** setting: 5-hour session on/off; weekly = none / tightest only / every weekly limit (replaces compact/full; old preference migrates)
+- **Menu bar style** setting: text, progress bars, or progress bars + % — bars are tinted green / orange / red by remaining headroom and follow light/dark appearance
+- `--status --session-only` CLI flag
+- Hidden `--snapshot <dir>` renders the README images from live data (no screen-recording permission needed)
+- README with light/dark screenshots
+
 ## v0.1.0
 
 First release of **ClaudeGauge** (sibling of [CursorGauge](https://github.com/marko999/cursor-gauge)).
