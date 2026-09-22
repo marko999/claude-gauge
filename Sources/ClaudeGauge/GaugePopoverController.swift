@@ -8,7 +8,8 @@ protocol GaugePopoverDelegate: AnyObject {
     func popoverDidRequestOpenDashboard()
     func popoverDidRequestQuit()
     func popoverDidChangeDisplayMode(_ mode: StatusDisplayMode)
-    func popoverDidChangeMenuBarLayout(_ layout: MenuBarLayout)
+    func popoverDidChangeMenuBarSelection(_ selection: MenuBarSelection)
+    func popoverDidChangeMenuBarStyle(_ style: MenuBarStyle)
     func popoverDidChangePollInterval(_ interval: TimeInterval)
 }
 
@@ -44,7 +45,9 @@ final class GaugePopoverController: NSViewController {
     private let settingsDisclosure = NSButton(checkboxWithTitle: "Settings", target: nil, action: nil)
     private let settingsContainer = NSStackView()
     private var displayModeButtons: [NSButton] = []
-    private var layoutButtons: [NSButton] = []
+    private let sessionCheckbox = NSButton(checkboxWithTitle: "5-hour session", target: nil, action: nil)
+    private var weeklyButtons: [NSButton] = []
+    private var styleButtons: [NSButton] = []
     private let pollPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let launchAtLoginCheckbox = NSButton(
         checkboxWithTitle: "Launch at Login",
@@ -56,7 +59,8 @@ final class GaugePopoverController: NSViewController {
     private var settingsExpanded = false
 
     private var displayMode: StatusDisplayMode = .remaining
-    private var menuBarLayout: MenuBarLayout = .compact
+    private var menuBarSelection: MenuBarSelection = .default
+    private var menuBarStyle: MenuBarStyle = .text
     private var lastSnapshot: UsageSnapshot?
     private var lastUpdated: Date?
 
@@ -137,7 +141,9 @@ final class GaugePopoverController: NSViewController {
             statusMessageLabel.stringValue = ""
         }
 
-        headlineLabel.stringValue = formatStatusText(snapshot, mode: displayMode, layout: .full)
+        headlineLabel.stringValue = formatStatusText(
+            snapshot, mode: displayMode, selection: MenuBarSelection(showSession: true, weekly: .all)
+        )
         updatedLabel.stringValue = formatUpdatedLabel(lastUpdated)
 
         clearArranged(limitsStack)
@@ -160,14 +166,24 @@ final class GaugePopoverController: NSViewController {
         relayout()
     }
 
-    func syncSettings(displayMode: StatusDisplayMode, layout: MenuBarLayout, pollInterval: TimeInterval) {
+    func syncSettings(
+        displayMode: StatusDisplayMode,
+        selection: MenuBarSelection,
+        style: MenuBarStyle,
+        pollInterval: TimeInterval
+    ) {
         self.displayMode = displayMode
-        menuBarLayout = layout
+        menuBarSelection = selection
+        menuBarStyle = style
         for button in displayModeButtons {
             button.state = button.tag == modeTag(displayMode) ? .on : .off
         }
-        for button in layoutButtons {
-            button.state = button.tag == layoutTag(layout) ? .on : .off
+        sessionCheckbox.state = selection.showSession ? .on : .off
+        for button in weeklyButtons {
+            button.state = button.tag == weeklyTag(selection.weekly) ? .on : .off
+        }
+        for button in styleButtons {
+            button.state = button.tag == styleTag(style) ? .on : .off
         }
         if let index = AppPreferences.allowedPollIntervals.firstIndex(of: pollInterval) {
             pollPopup.selectItem(at: index)
@@ -175,6 +191,21 @@ final class GaugePopoverController: NSViewController {
         if let snapshot = lastSnapshot, let at = lastUpdated {
             showOverview(snapshot: snapshot, lastUpdated: at, warning: statusMessageLabel.isHidden ? nil : statusMessageLabel.stringValue)
         }
+    }
+
+    /// Snapshot rendering only: expand the settings block without a click.
+    func setSettingsExpandedForSnapshot(_ expanded: Bool) {
+        settingsDisclosure.state = expanded ? .on : .off
+        settingsDisclosureToggled()
+    }
+
+    /// Snapshot rendering only: lay the content out in a tall frame and hand back the
+    /// document view, so the renderer can capture it whole instead of the scroll clip.
+    func snapshotDocumentView() -> NSView {
+        view.frame = NSRect(x: 0, y: 0, width: Self.popoverWidth, height: 4000)
+        view.layoutSubtreeIfNeeded()
+        contentStack.layoutSubtreeIfNeeded()
+        return contentStack
     }
 
     // MARK: - Build
@@ -310,17 +341,35 @@ final class GaugePopoverController: NSViewController {
 
         settingsContainer.addArrangedSubview(spacer(4))
         settingsContainer.addArrangedSubview(settingTitle("Menu bar shows"))
-        layoutButtons = MenuBarLayout.allCases.map { layout in
+        sessionCheckbox.target = self
+        sessionCheckbox.action = #selector(sessionCheckboxToggled)
+        sessionCheckbox.font = .systemFont(ofSize: 12)
+        settingsContainer.addArrangedSubview(sessionCheckbox)
+        weeklyButtons = WeeklySelection.allCases.map { weekly in
             let button = NSButton(
-                radioButtonWithTitle: layout.settingsLabel,
+                radioButtonWithTitle: weekly.settingsLabel,
                 target: self,
-                action: #selector(layoutClicked(_:))
+                action: #selector(weeklyClicked(_:))
             )
-            button.tag = layoutTag(layout)
+            button.tag = weeklyTag(weekly)
             button.font = .systemFont(ofSize: 12)
             return button
         }
-        layoutButtons.forEach { settingsContainer.addArrangedSubview($0) }
+        weeklyButtons.forEach { settingsContainer.addArrangedSubview($0) }
+
+        settingsContainer.addArrangedSubview(spacer(4))
+        settingsContainer.addArrangedSubview(settingTitle("Menu bar style"))
+        styleButtons = MenuBarStyle.allCases.map { style in
+            let button = NSButton(
+                radioButtonWithTitle: style.settingsLabel,
+                target: self,
+                action: #selector(styleClicked(_:))
+            )
+            button.tag = styleTag(style)
+            button.font = .systemFont(ofSize: 12)
+            return button
+        }
+        styleButtons.forEach { settingsContainer.addArrangedSubview($0) }
 
         settingsContainer.addArrangedSubview(spacer(4))
         let pollRow = NSStackView()
@@ -451,8 +500,12 @@ final class GaugePopoverController: NSViewController {
         StatusDisplayMode.allCases.firstIndex(of: mode) ?? 0
     }
 
-    private func layoutTag(_ layout: MenuBarLayout) -> Int {
-        MenuBarLayout.allCases.firstIndex(of: layout) ?? 0
+    private func weeklyTag(_ weekly: WeeklySelection) -> Int {
+        WeeklySelection.allCases.firstIndex(of: weekly) ?? 0
+    }
+
+    private func styleTag(_ style: MenuBarStyle) -> Int {
+        MenuBarStyle.allCases.firstIndex(of: style) ?? 0
     }
 
     private func syncLaunchAtLoginUI(errorMessage: String? = nil) {
@@ -505,13 +558,27 @@ final class GaugePopoverController: NSViewController {
         delegate?.popoverDidChangeDisplayMode(mode)
     }
 
-    @objc private func layoutClicked(_ sender: NSButton) {
-        let layout = MenuBarLayout.allCases[max(0, min(MenuBarLayout.allCases.count - 1, sender.tag))]
-        menuBarLayout = layout
-        for button in layoutButtons {
+    @objc private func sessionCheckboxToggled() {
+        menuBarSelection.showSession = sessionCheckbox.state == .on
+        delegate?.popoverDidChangeMenuBarSelection(menuBarSelection)
+    }
+
+    @objc private func weeklyClicked(_ sender: NSButton) {
+        let weekly = WeeklySelection.allCases[max(0, min(WeeklySelection.allCases.count - 1, sender.tag))]
+        menuBarSelection.weekly = weekly
+        for button in weeklyButtons {
             button.state = button.tag == sender.tag ? .on : .off
         }
-        delegate?.popoverDidChangeMenuBarLayout(layout)
+        delegate?.popoverDidChangeMenuBarSelection(menuBarSelection)
+    }
+
+    @objc private func styleClicked(_ sender: NSButton) {
+        let style = MenuBarStyle.allCases[max(0, min(MenuBarStyle.allCases.count - 1, sender.tag))]
+        menuBarStyle = style
+        for button in styleButtons {
+            button.state = button.tag == sender.tag ? .on : .off
+        }
+        delegate?.popoverDidChangeMenuBarStyle(style)
     }
 
     @objc private func pollIntervalChanged() {

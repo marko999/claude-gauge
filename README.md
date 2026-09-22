@@ -4,22 +4,39 @@
 
 macOS menu-bar app that shows how much of your Claude subscription is left — the rolling **5-hour** window, the **weekly** cap and per-model weekly caps — with reset countdowns, one click (or **⌥⌘K**) away.
 
-```
-5h 96% · W·Fable 83%        ← menu bar (remaining %, tightest weekly picked automatically)
-```
+<p>
+  <img src="docs/images/menubar-text-light.png" alt="Menu bar, text style" height="24" />&nbsp;&nbsp;
+  <img src="docs/images/menubar-barAndText-light.png" alt="Menu bar, bars + percent" height="24" />&nbsp;&nbsp;
+  <img src="docs/images/menubar-bar-light.png" alt="Menu bar, bars only" height="24" />
+</p>
+<p>
+  <img src="docs/images/menubar-text-dark.png" alt="Menu bar, text style, dark" height="24" />&nbsp;&nbsp;
+  <img src="docs/images/menubar-barAndText-dark.png" alt="Menu bar, bars + percent, dark" height="24" />&nbsp;&nbsp;
+  <img src="docs/images/menubar-bar-dark.png" alt="Menu bar, bars only, dark" height="24" />
+</p>
+
+<p>
+  <img src="docs/images/popover-light.png" alt="ClaudeGauge popover" width="400" />
+  <img src="docs/images/popover-dark.png" alt="ClaudeGauge popover, dark" width="400" />
+</p>
 
 > Not affiliated with Anthropic. Uses the same undocumented OAuth usage endpoint that `/usage` in Claude Code calls; it can change without notice.
 
 ## ✨ Features
 
-- 📊 Menu bar: `5h 96% · W 83%` — remaining (default) or used %, compact or every limit
-- 🟢🟠🔴 Title turns orange below 25 % left and red below 10 %
-- 🪟 Popover: one bar per limit (5-hour, weekly · all models, weekly · per model), reset countdown + wall-clock time, extra-usage credits when enabled
+- 📊 **Menu bar**: pick what it shows — 5-hour session, no / tightest / every weekly limit — as text (`5h 92% · W·Fable 96%`), progress bars, or bars + %
+- 🟢🟠🔴 Bars and text turn orange below 25 % left and red below 10 %
+- 🪟 **Popover**: one bar per limit (5-hour, weekly · all models, weekly · per model), reset countdown + wall-clock time, extra-usage credits when enabled
+- 🔢 Remaining % (default) or used % like `/usage`
 - ⌨️ **⌥⌘K** opens the panel even if the icon is crowded out of the menu bar
 - 🔁 Polls every 60 s (30 s – 5 min configurable), refreshes on wake and focus
 - 🔒 Reuses your existing `claude auth login`; refreshes the OAuth token when it expires and writes it back so the CLI stays signed in
 - 🖥️ Hidden CLI: `ClaudeGauge --status` prints the same text for scripts and statuslines
 - ⚙️ Optional Launch at Login
+
+<p>
+  <img src="docs/images/settings-light.png" alt="Settings" width="400" />
+</p>
 
 ## 🚀 Install
 
@@ -46,7 +63,8 @@ Details: [SECURITY.md](SECURITY.md)
 ## 🧰 Statusline / scripts
 
 ```bash
-/Applications/ClaudeGauge.app/Contents/MacOS/ClaudeGauge --status            # 5h 96% · W·Fable 83%
+/Applications/ClaudeGauge.app/Contents/MacOS/ClaudeGauge --status                 # 5h 92% · W·Fable 96%
+/Applications/ClaudeGauge.app/Contents/MacOS/ClaudeGauge --status --session-only  # 5h 92%
 /Applications/ClaudeGauge.app/Contents/MacOS/ClaudeGauge --status --used --full --verbose
 ```
 
@@ -57,13 +75,17 @@ make test && make app
 open dist/ClaudeGauge.app
 ```
 
-`make run` rebuilds, restarts a running instance and opens the fresh bundle. See [CONTRIBUTING.md](CONTRIBUTING.md).
+`make run` rebuilds, restarts a running instance and opens the fresh bundle. `ClaudeGauge --snapshot docs/images` regenerates the screenshots above from live data. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## ⚠️ Notes
 
 - Needs Claude Code signed in on this Mac (`claude auth login`). The Claude **desktop app** keeps its own login and does not refresh the CLI's Keychain item.
 - Apple Silicon (arm64) for the published zip
 - Numbers are account-wide (CLI, desktop, web, mobile) — the same figures `/usage` shows
+
+## Sibling project
+
+[CursorGauge](https://github.com/marko999/cursor-gauge) — the same idea for Cursor's spending pools.
 
 ## License
 

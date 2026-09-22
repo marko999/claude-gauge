@@ -23,12 +23,14 @@ final class StatusItemController: NSObject, NSPopoverDelegate, GaugePopoverDeleg
     private var lastError: String?
     private var lastWarning: String?
     private var displayMode: StatusDisplayMode
-    private var menuBarLayout: MenuBarLayout
+    private var menuBarSelection: MenuBarSelection
+    private var menuBarStyle: MenuBarStyle
     private var pollInterval: TimeInterval
 
     override init() {
         displayMode = AppPreferences.displayMode()
-        menuBarLayout = AppPreferences.menuBarLayout()
+        menuBarSelection = AppPreferences.menuBarSelection()
+        menuBarStyle = AppPreferences.menuBarStyle()
         pollInterval = AppPreferences.pollInterval()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.isVisible = true
@@ -51,7 +53,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate, GaugePopoverDeleg
 
         popoverController.syncSettings(
             displayMode: displayMode,
-            layout: menuBarLayout,
+            selection: menuBarSelection,
+            style: menuBarStyle,
             pollInterval: pollInterval
         )
         applyLoading()
@@ -142,7 +145,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate, GaugePopoverDeleg
     private func renderPopoverContent() {
         popoverController.syncSettings(
             displayMode: displayMode,
-            layout: menuBarLayout,
+            selection: menuBarSelection,
+            style: menuBarStyle,
             pollInterval: pollInterval
         )
         if let snapshot = lastSnapshot, let at = lastSuccessAt {
@@ -175,9 +179,15 @@ final class StatusItemController: NSObject, NSPopoverDelegate, GaugePopoverDeleg
         renderTitle()
     }
 
-    func popoverDidChangeMenuBarLayout(_ layout: MenuBarLayout) {
-        menuBarLayout = layout
-        AppPreferences.setMenuBarLayout(layout)
+    func popoverDidChangeMenuBarSelection(_ selection: MenuBarSelection) {
+        menuBarSelection = selection
+        AppPreferences.setMenuBarSelection(selection)
+        renderTitle()
+    }
+
+    func popoverDidChangeMenuBarStyle(_ style: MenuBarStyle) {
+        menuBarStyle = style
+        AppPreferences.setMenuBarStyle(style)
         renderTitle()
     }
 
@@ -303,16 +313,26 @@ final class StatusItemController: NSObject, NSPopoverDelegate, GaugePopoverDeleg
     }
 
     private func renderTitle() {
-        guard let snapshot = lastSnapshot, let at = lastSuccessAt else { return }
-        setTitle(
-            formatStatusText(snapshot, mode: displayMode, layout: menuBarLayout),
-            severity: severity(of: snapshot)
-        )
-        statusItem.button?.toolTip = formatTooltip(snapshot, mode: displayMode, lastUpdated: at)
+        guard let snapshot = lastSnapshot, let at = lastSuccessAt, let button = statusItem.button else { return }
+        let windows = menuBarWindows(snapshot, selection: menuBarSelection)
+        switch menuBarStyle {
+        case .text:
+            setTitle(
+                formatStatusText(snapshot, mode: displayMode, selection: menuBarSelection),
+                severity: windows.map(severity(of:)).max() ?? .normal
+            )
+        case .bar, .barAndText:
+            button.attributedTitle = NSAttributedString(string: "")
+            button.image = MenuBarImageRenderer.image(windows: windows, mode: displayMode, style: menuBarStyle)
+            button.imagePosition = .imageOnly
+        }
+        button.toolTip = formatTooltip(snapshot, mode: displayMode, lastUpdated: at)
     }
 
     private func setTitle(_ title: String, severity: UsageSeverity) {
         guard let button = statusItem.button else { return }
+        button.image = nil
+        button.imagePosition = .noImage
         let font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
         var attributes: [NSAttributedString.Key: Any] = [.font: font]
         switch severity {

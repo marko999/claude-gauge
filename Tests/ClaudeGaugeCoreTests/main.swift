@@ -84,21 +84,36 @@ do {
     expectEqual(snapshot.extraUsage?.percentUsed, 12.5)
 
     expectEqual(
-        formatStatusText(snapshot, mode: .remaining, layout: .compact),
+        formatStatusText(snapshot, mode: .remaining, selection: .default),
         "5h 96% · W·Fable 83%",
         "compact remaining"
     )
     expectEqual(
-        formatStatusText(snapshot, mode: .used, layout: .compact),
+        formatStatusText(snapshot, mode: .used, selection: .default),
         "5h 4% · W·Fable 17%",
         "compact used"
     )
     expectEqual(
-        formatStatusText(snapshot, mode: .remaining, layout: .full),
+        formatStatusText(snapshot, mode: .remaining, selection: MenuBarSelection(showSession: true, weekly: .all)),
         "5h 96% · W 99% · W·Fable 83%",
         "full remaining"
     )
     expectEqual(severity(of: snapshot), .normal, "no warning yet")
+    expectEqual(
+        formatStatusText(snapshot, mode: .remaining, selection: MenuBarSelection(showSession: true, weekly: .none)),
+        "5h 96%",
+        "session only"
+    )
+    expectEqual(
+        formatStatusText(snapshot, mode: .remaining, selection: MenuBarSelection(showSession: false, weekly: .all)),
+        "W 99% · W·Fable 83%",
+        "weekly only"
+    )
+    expectEqual(
+        formatStatusText(snapshot, mode: .remaining, selection: MenuBarSelection(showSession: false, weekly: .none)),
+        "5h 96% · W·Fable 83%",
+        "nothing selected falls back to session + tightest"
+    )
 
     let tooltip = formatTooltip(
         snapshot,
@@ -140,7 +155,7 @@ do {
     expectEqual(severity(of: snapshot), .critical, "critical when ≤10% left")
     expectEqual(snapshot.tightestWeekly?.shortLabel, "W", "weekly_all tighter than opus at 0%")
     expectEqual(
-        formatStatusText(snapshot, mode: .remaining, layout: .compact),
+        formatStatusText(snapshot, mode: .remaining, selection: .default),
         "5h 8% · W 65%"
     )
     expect(snapshot.windows.last?.resetsAt == nil, "null resets_at tolerated")
@@ -198,9 +213,19 @@ do {
     AppPreferences.setDisplayMode(.used, defaults: defaults)
     expectEqual(AppPreferences.displayMode(defaults: defaults), .used)
 
-    expectEqual(AppPreferences.menuBarLayout(defaults: defaults), .compact, "default layout")
-    AppPreferences.setMenuBarLayout(.full, defaults: defaults)
-    expectEqual(AppPreferences.menuBarLayout(defaults: defaults), .full)
+    expectEqual(AppPreferences.menuBarSelection(defaults: defaults), .default, "default selection")
+    AppPreferences.setMenuBarSelection(MenuBarSelection(showSession: false, weekly: .all), defaults: defaults)
+    expectEqual(AppPreferences.menuBarSelection(defaults: defaults), MenuBarSelection(showSession: false, weekly: .all))
+    expectEqual(AppPreferences.menuBarStyle(defaults: defaults), .text, "default style")
+    AppPreferences.setMenuBarStyle(.barAndText, defaults: defaults)
+    expectEqual(AppPreferences.menuBarStyle(defaults: defaults), .barAndText)
+
+    let legacySuite = "claude-gauge-tests-legacy-\(UUID().uuidString)"
+    let legacy = UserDefaults(suiteName: legacySuite)!
+    defer { legacy.removePersistentDomain(forName: legacySuite) }
+    legacy.set("full", forKey: AppPreferences.legacyLayoutKey)
+    expectEqual(AppPreferences.menuBarSelection(defaults: legacy).weekly, .all, "v0.1 'full' migrates to every weekly")
+    expectEqual(AppPreferences.menuBarSelection(defaults: legacy).showSession, true, "v0.1 migration keeps session")
 
     expectEqual(AppPreferences.pollInterval(defaults: defaults), 60, "default poll")
     AppPreferences.setPollInterval(300, defaults: defaults)

@@ -40,16 +40,30 @@ public func displayedSuffix(mode: StatusDisplayMode) -> String {
     mode == .remaining ? "left" : "used"
 }
 
-/// Windows shown in the menu bar title. Compact = session + the tightest weekly.
-public func menuBarWindows(_ snapshot: UsageSnapshot, layout: MenuBarLayout) -> [UsageWindow] {
-    let ordered = orderedWindows(snapshot)
-    switch layout {
-    case .full:
-        return ordered
-    case .compact:
-        let picked = [snapshot.session, snapshot.tightestWeekly].compactMap { $0 }
-        return picked.isEmpty ? ordered : picked
+/// Windows shown in the menu bar, per the user's selection. Never empty when the
+/// snapshot has any window: falls back to session + tightest weekly, then everything.
+public func menuBarWindows(_ snapshot: UsageSnapshot, selection: MenuBarSelection) -> [UsageWindow] {
+    var result: [UsageWindow] = []
+    if selection.showSession, let session = snapshot.session {
+        result.append(session)
     }
+    switch selection.weekly {
+    case .none:
+        break
+    case .tightest:
+        if let weekly = snapshot.tightestWeekly {
+            result.append(weekly)
+        }
+    case .all:
+        result.append(contentsOf: orderedWindows(snapshot).filter { $0.isWeekly })
+    }
+    if result.isEmpty {
+        result = [snapshot.session, snapshot.tightestWeekly].compactMap { $0 }
+    }
+    if result.isEmpty {
+        result = orderedWindows(snapshot)
+    }
+    return result
 }
 
 /// Session first, then weekly (all models before scoped), then anything else.
@@ -74,9 +88,9 @@ public func orderedWindows(_ snapshot: UsageSnapshot) -> [UsageWindow] {
 public func formatStatusText(
     _ snapshot: UsageSnapshot,
     mode: StatusDisplayMode,
-    layout: MenuBarLayout
+    selection: MenuBarSelection
 ) -> String {
-    menuBarWindows(snapshot, layout: layout)
+    menuBarWindows(snapshot, selection: selection)
         .map { "\($0.shortLabel) \(formatPercent(displayedPercent($0, mode: mode)))" }
         .joined(separator: " · ")
 }
